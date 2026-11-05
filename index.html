@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>親師拆彈專家 Pro — 資深導師 × 心理師 × 公關危機回覆助手</title>
+  
+  <!-- 強制跳脫 LINE / FB / IG 內建瀏覽器，改用系統預設瀏覽器 (Safari / Chrome) 開啟 -->
+  <script>
+    (function() {
+      var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+      var isLine = /Line\//i.test(ua);
+      var isInApp = /FBAN|FBAV|Instagram|Threads|MicroMessenger|Line\//i.test(ua);
+
+      // 1. 針對 LINE 內建瀏覽器：自動加上官方支援的 openExternalBrowser=1 參數強制外開
+      if (isLine) {
+        try {
+          var url = new URL(window.location.href);
+          if (url.searchParams.get('openExternalBrowser') !== '1') {
+            url.searchParams.set('openExternalBrowser', '1');
+            window.location.replace(url.toString());
+            return;
+          }
+        } catch (e) {
+          if (window.location.href.indexOf('openExternalBrowser=1') === -1) {
+            var sep = window.location.href.indexOf('?') === -1 ? '?' : '&';
+            window.location.replace(window.location.href + sep + 'openExternalBrowser=1');
+            return;
+          }
+        }
+      }
+
+      // 2. 針對 Android 內建瀏覽器 (FB/IG/WeChat)：使用 Intent 協議強制呼叫外部 Chrome
+      if (isInApp && /Android/i.test(ua)) {
+        var noProtocol = window.location.href.replace(/^https?:\/\//i, '');
+        window.location.href = 'intent://' + noProtocol + '#Intent;scheme=https;package=com.android.chrome;end';
+      }
+
+      window.__IS_IN_APP_BROWSER__ = isInApp;
+    })();
+  </script>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- html2pdf.js 供直接生成 PDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    @media print {
+      body * { visibility: hidden; }
+      #printable-area, #printable-area * { visibility: visible; }
+      #printable-area { position: absolute; left: 0; top: 0; width: 100%; box-shadow: none !important; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
+  <!-- 若受困於 iOS FB/IG 內建瀏覽器時的強制引導遮罩 -->
+  <div id="inapp-overlay" class="hidden fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm text-white p-6 flex flex-col items-center justify-center text-center">
+    <div class="max-w-md bg-slate-800 border border-teal-400 rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="text-4xl">🌐</div>
+      <h2 class="text-xl font-bold text-teal-300">請使用預設瀏覽器開啟</h2>
+      <p class="text-sm text-slate-200 leading-relaxed">
+        為了確保「上傳截圖、一鍵複製、列印與下載 PDF」功能正常運作，系統強制要求使用 Chrome 或 Safari 瀏覽器開啟。
+      </p>
+      <div class="bg-slate-900/90 rounded-2xl p-4 text-left text-xs space-y-2 border border-slate-700">
+        <p>👉 <strong>步驟 1：</strong>點擊畫面右上角或右下角的 <strong>「⋯」</strong> 或 <strong>「分享」</strong> 圖示</p>
+        <p>👉 <strong>步驟 2：</strong>選擇 <strong>「在預設瀏覽器中開啟」</strong> (Open in Browser / Safari / Chrome)</p>
+      </div>
+      <button onclick="forceJumpOut()" class="w-full py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow">
+        🚀 點此嘗試自動跳轉外部瀏覽器
+      </button>
+      <button onclick="document.getElementById('inapp-overlay').classList.add('hidden')" class="text-xs text-slate-400 underline">
+        我已知曉，先繼續預覽畫面
+      </button>
+    </div>
+  </div>
+
+  <!-- 頂部導覽列 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm no-print">
+    <div class="max-w-6xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-600 flex items-center justify-center text-white font-bold text-lg shadow">
+          🤝
+        </div>
+        <div>
+          <h1 class="text-lg sm:text-xl font-bold text-slate-900">親師拆彈專家 Pro</h1>
+          <p class="text-xs text-slate-500">資深導師 × 輔導心理師 × 公關危機專家｜零情緒・不官腔・三種回應</p>
+        </div>
+      </div>
+      <div class="flex items-center gap-2">
+        <button onclick="toggleApiKeyModal()" class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700">
+          🔑 API 金鑰設定
+        </button>
+        <button id="btn-report" onclick="openReportModal()" class="hidden px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow">
+          🖨️ 列印 / 生成 PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主畫面容器 -->
+  <main class="max-w-6xl mx-auto px-4 pt-6 space-y-6 no-print">
+    <!-- 示範案例列 -->
+    <div class="bg-teal-50 border border-teal-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+      <div class="text-xs sm:text-sm text-teal-900 font-medium">
+        💡 貼上家長訊息或截圖，一次生成「心理師同盟、王牌導師務實、公關專家界線」三種去情緒回應：
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="loadDemo(0)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例一：質疑偏心</button>
+        <button onclick="loadDemo(1)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例二：要求換座位</button>
+        <button onclick="loadDemo(2)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例三：怪罪教學</button>
+      </div>
+    </div>
+
+    <!-- 對話歷程顯示區 -->
+    <div id="thread-container" class="space-y-6"></div>
+
+    <!-- 輸入與接續話題面板 -->
+    <section class="bg-white rounded-3xl border-2 border-teal-500/80 shadow-md overflow-hidden">
+      <div class="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-3.5 text-white flex items-center justify-between">
+        <h2 id="input-panel-title" class="font-bold text-base">📩 貼入家長訊息或上傳對話截圖</h2>
+        <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full">支援 Ctrl+V 直接貼上截圖</span>
+      </div>
+      <div class="p-5 space-y-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">家長稱呼（選填）</label>
+            <input id="parent-name" type="text" placeholder="例如：小宇媽媽" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="block text-xs font-bold text-slate-600 mb-1">老師私下背景補充（選填，幫助 AI 精準替您說話）</label>
+            <input id="teacher-note" type="text" placeholder="例如：實際上是雙方拉扯，希望溫和安撫並約明天電話溝通..." class="w-full px-3 py-2 rounded-xl border border-slate-200 text-sm" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-8">
+            <label class="block text-xs font-bold text-slate-600 mb-1">家長傳來的訊息內容（或接續話題的最新回覆）</label>
+            <textarea id="parent-msg" rows="4" placeholder="請貼上家長的 LINE 訊息或聯絡簿內容..." class="w-full p-3.5 rounded-2xl border border-slate-200 text-sm leading-relaxed"></textarea>
+          </div>
+          <div class="lg:col-span-4 flex flex-col">
+            <label class="block text-xs font-bold text-slate-600 mb-1">📸 上傳照片 / LINE 截圖（選填）</label>
+            <div onclick="document.getElementById('file-input').click()" class="flex-1 min-h-[108px] border-2 border-dashed border-slate-300 hover:border-teal-500 rounded-2xl bg-slate-50 p-3 flex flex-col items-center justify-center text-center cursor-pointer">
+              <input id="file-input" type="file" accept="image/*" multiple class="hidden" onchange="handleFiles(this.files)" />
+              <span class="text-xl mb-1">📷</span>
+              <span class="text-xs font-semibold text-slate-700">點擊上傳照片，或按 Ctrl+V 貼上截圖</span>
+            </div>
+            <div id="img-preview-list" class="mt-2 flex flex-wrap gap-2"></div>
+          </div>
+        </div>
+
+        <div class="flex justify-end">
+          <button id="btn-submit" onclick="submitTurn()" class="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-sm sm:text-base shadow-lg cursor-pointer">
+            ✨ 一次生成三種專業去情緒回應
+          </button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- API Key 設定彈窗 -->
+  <div id="apikey-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <h3 class="text-lg font-bold text-slate-900">🔑 設定 Gemini API Key</h3>
+      <p class="text-xs text-slate-600 leading-relaxed">
+        本網頁部署於 GitHub Pages，請輸入您的 Google Gemini API Key 即可免費使用 AI 拆彈生成功能（金鑰僅保存在您的瀏覽器本機）。
+      </p>
+      <input id="apikey-input" type="password" placeholder="貼上 AIzaSy... 開頭的金鑰" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono" />
+      <div class="flex justify-end gap-2">
+        <button onclick="toggleApiKeyModal()" class="px-4 py-2 rounded-xl border text-xs font-semibold">關閉</button>
+        <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold">儲存金鑰</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 列印與生成 PDF 彈窗 -->
+  <div id="report-modal" class="hidden fixed inset-0 z-50 bg-slate-900/75 flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div class="bg-slate-100 rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between no-print">
+        <span class="font-bold text-sm">📄 親師溝通完整對話紀錄 — 列印與生成 PDF</span>
+        <div class="flex items-center gap-2">
+          <button onclick="downloadPdf()" class="px-3.5 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs">下載 PDF</button>
+          <button onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs">直接列印</button>
+          <button onclick="closeReportModal()" class="px-2.5 py-1.5 rounded-xl bg-slate-700 text-white text-xs">✕</button>
+        </div>
+      </div>
+      <div class="p-4 sm:p-8 overflow-y-auto flex-1">
+        <div id="printable-area" class="bg-white rounded-2xl p-6 sm:p-8 border border-slate-200 max-w-3xl mx-auto space-y-5">
+          <div class="border-b-2 border-slate-800 pb-3 text-center">
+            <h1 class="text-xl font-bold">親師溝通與輔導危機處理歷程紀錄</h1>
+            <p id="report-meta" class="text-xs text-slate-500 mt-1"></p>
+          </div>
+          <div id="report-turns" class="space-y-4"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 預設或使用者填入的 API Key
+    var DEFAULT_API_KEY = "";
+    var currentApiKey = DEFAULT_API_KEY;
+    var thread = [];
+    var uploadedImages = [];
+
+    var DEMOS = [
+      { name: '小宇媽媽', msg: '老師，小宇回家哭著說今天下課跟同學搶球，明明是對方先動手推他，為什麼你只有罰小宇站、叫他寫反省單？他現在很抗拒上學，覺得老師都偏心只聽別人的話，請老師給我一個合理的解釋！', note: '實際情況是兩人都有拉扯，對方當時已經先道歉並去保健室冰敷，小宇情緒激動摔東西才請他先在旁邊冷靜寫下經過。' },
+      { name: '品妍爸爸', msg: '老師不好意思這麼晚打擾，但品妍說明天不想坐現在那個位置，旁邊的男生很吵一直影響她上課。我跟她說老師明天一早就會幫她換到第一排中間，再麻煩老師明天早上務必幫她換好，謝謝。', note: '班上座位每兩週輪換一次，無法因單一家長要求直接指定第一排中間，但會先調整旁邊同學的干擾行為。' },
+      { name: '宥廷媽媽', msg: '老師，這次數學小考宥廷怎麼才考68分？以前中年級他都考90幾分，是不是老師上課講太快或是補充題目太少？這樣下去他信心都沒了，老師有沒有什麼補救辦法？', note: '高年級分數運算較抽象，宥廷上課容易分心漏聽步驟，希望邀請家長一起配合檢視訂正習慣。' }
+    ];
+
+    if (window.__IS_IN_APP_BROWSER__) {
+      document.getElementById('inapp-overlay').classList.remove('hidden');
+    }
+
+    function forceJumpOut() {
+      var url = new URL(window.location.href);
+      url.searchParams.set('openExternalBrowser', '1');
+      window.location.href = url.toString();
+    }
+
+    function toggleApiKeyModal() {
+      var el = document.getElementById('apikey-modal');
+      el.classList.toggle('hidden');
+      document.getElementById('apikey-input').value = currentApiKey;
+    }
+
+    function saveApiKey() {
+      currentApiKey = document.getElementById('apikey-input').value.trim();
+      document.getElementById('apikey-modal').classList.add('hidden');
+    }
+
+    function loadDemo(idx) {
+      var d = DEMOS[idx];
+      document.getElementById('parent-name').value = d.name;
+      document.getElementById('parent-msg').value = d.msg;
+      document.getElementById('teacher-note').value = d.note;
+    }
+
+    window.addEventListener('paste', function(e) {
+      if (!e.clipboardData || !e.clipboardData.items) return;
+      for (var i = 0; i < e.clipboardData.items.length; i++) {
+        if (e.clipboardData.items[i].type.indexOf('image') !== -1) {
+          handleFiles([e.clipboardData.items[i].getAsFile()]);
+        }
+      }
+    });
+
+    function handleFiles(files) {
+      Array.from(files || []).forEach(function(file) {
+        if (!file || !file.type.startsWith('image/')) return;
+        var reader = new FileReader();
+        reader.onload = function(ev) {
+          var dataUrl = ev.target.result;
+          uploadedImages.push({ mimeType: file.type, dataUrl: dataUrl, base64: dataUrl.split(',')[1] });
+          renderImagePreviews();
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function renderImagePreviews() {
+      var container = document.getElementById('img-preview-list');
+      container.innerHTML = uploadedImages.map(function(img, i) {
+        return '<div class="relative"><img src="' + img.dataUrl + '" class="h-14 w-14 object-cover rounded-lg border border-teal-400" /><button onclick="removeImg(' + i + ')" class="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white text-[10px]">✕</button></div>';
+      }).join('');
+    }
+
+    function removeImg(i) {
+      uploadedImages.splice(i, 1);
+      renderImagePreviews();
+    }
+
+    async function callGemini(turnHistory, pName, pMsg, pImgs, tNote, extraInstruction) {
+      if (!currentApiKey) {
+        toggleApiKeyModal();
+        throw new Error('請先設定 Gemini API Key');
+      }
+      var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + encodeURIComponent(currentApiKey);
+      var sys = '你是一位結合「20年資深王牌導師、輔導老師、諮商心理師、危機公關專家」的顧問。請針對家長訊息或圖片，遵守：1.完全不帶任何情緒字眼（不防衛、不說教、不指責）。2.不打冰冷官腔，語氣自然真誠像關心孩子的老師。3.一次生成三種不同策略的回應：方案1【溫和接住・建立同盟】（心理師×輔導老師）、方案2【務實聚焦・具體行動】（資深王牌導師）、方案3【公關拆彈・溫柔界線】（公關危機專家）。';
+
+      var histText = turnHistory.map(function(t, i) {
+        return '第' + (i + 1) + '輪家長：' + t.parentMessage + '\n老師採用回覆：' + (t.responses[t.selectedIdx || 0]?.content || '');
+      }).join('\n---\n');
+
+      var prompt = (histText ? '【先前對話脈絡】\n' + histText + '\n\n' : '') +
+        '【家長稱呼】：' + (pName || '家長') + '\n【家長本輪訊息】：' + (pMsg || '(請判讀附圖)') +
+        '\n【老師私下補充】：' + (tNote || '無') + (extraInstruction ? '\n【特別要求】：' + extraInstruction : '');
+
+      var parts = [{ text: prompt }];
+      (pImgs || []).forEach(function(img) {
+        parts.push({ inlineData: { mimeType: img.mimeType, data: img.base64 } });
+      });
+
+      var payload = {
+        contents: [{ role: 'user', parts: parts }],
+        systemInstruction: { parts: [{ text: sys }] },
+        generationConfig: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              parentPsychologyInsight: { type: 'STRING' },
+              responses: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    type: { type: 'STRING' },
+                    roleBadge: { type: 'STRING' },
+                    strategyHint: { type: 'STRING' },
+                    content: { type: 'STRING' }
+                  },
+                  required: ['type', 'roleBadge', 'strategyHint', 'content']
+                }
+              }
+            },
+            required: ['parentPsychologyInsight', 'responses']
+          }
+        }
+      };
+
+      var res = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      var data = await res.json();
+      var txt = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!txt) throw new Error(data?.error?.message || '生成失敗，請檢查 API Key');
+      return JSON.parse(txt);
+    }
+
+    async function submitTurn() {
+      var pName = document.getElementById('parent-name').value.trim() || '家長';
+      var pMsg = document.getElementById('parent-msg').value.trim();
+      var tNote = document.getElementById('teacher-note').value.trim();
+      if (!pMsg && uploadedImages.length === 0) return;
+
+      var btn = document.getElementById('btn-submit');
+      btn.disabled = true;
+      btn.textContent = '⏳ 專家團隊正在擬定三種去情緒回應...';
+
+      try {
+        var result = await callGemini(thread, pName, pMsg, uploadedImages, tNote, '');
+        thread.push({
+          timestamp: new Date().toLocaleString('zh-TW'),
+          parentName: pName,
+          parentMessage: pMsg,
+          parentImages: uploadedImages.slice(),
+          teacherNote: tNote,
+          analysis: result.parentPsychologyInsight,
+          responses: (result.responses || []).slice(0, 3),
+          selectedIdx: 0
+        });
+        document.getElementById('parent-msg').value = '';
+        document.getElementById('teacher-note').value = '';
+        uploadedImages = [];
+        renderImagePreviews();
+        renderThread();
+        document.getElementById('btn-report').classList.remove('hidden');
+        document.getElementById('input-panel-title').textContent = '💬 接續話題（第 ' + (thread.length + 1) + ' 輪）：貼入家長的最新回覆';
+      } catch (err) {
+        alert(err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '✨ 一次生成三種專業去情緒回應';
+      }
+    }
+
+    async function regenerateTurn(tIdx) {
+      var t = thread[tIdx];
+      try {
+        var result = await callGemini(thread.slice(0, tIdx), t.parentName, t.parentMessage, t.parentImages, t.teacherNote, '請換個切入角度與全新措辭重新生成三種回應');
+        t.analysis = result.parentPsychologyInsight;
+        t.responses = (result.responses || []).slice(0, 3);
+        renderThread();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    function copyReply(tIdx, rIdx, btnEl) {
+      thread[tIdx].selectedIdx = rIdx;
+      var txt = document.getElementById('reply-box-' + tIdx + '-' + rIdx).value;
+      thread[tIdx].responses[rIdx].content = txt;
+      var ta = document.createElement('textarea');
+      ta.value = txt;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      var old = btnEl.textContent;
+      btnEl.textContent = '✅ 已複製到剪貼簿！';
+      setTimeout(function() { btnEl.textContent = old; renderThread(); }, 1500);
+    }
+
+    function renderThread() {
+      var container = document.getElementById('thread-container');
+      container.innerHTML = thread.map(function(t, tIdx) {
+        var cards = t.responses.map(function(r, rIdx) {
+          var isSel = (t.selectedIdx || 0) === rIdx;
+          var colors = [
+            'from-teal-600 to-emerald-600',
+            'from-blue-600 to-indigo-600',
+            'from-amber-600 to-orange-600'
+          ][rIdx] || 'from-teal-600 to-emerald-600';
+          return '<div class="rounded-2xl border ' + (isSel ? 'ring-2 ring-teal-500 border-teal-500' : 'border-slate-200') + ' bg-white overflow-hidden flex flex-col justify-between shadow-xs">' +
+            '<div><div class="bg-gradient-to-r ' + colors + ' px-4 py-2.5 text-white flex justify-between items-center">' +
+            '<div><div class="font-bold text-sm">方案 ' + (rIdx + 1) + '：' + r.type + '</div><div class="text-[11px] opacity-90">' + r.roleBadge + '</div></div>' +
+            (isSel ? '<span class="text-[11px] bg-white/20 px-2 py-0.5 rounded-full">✓ 採用</span>' : '') +
+            '</div>' +
+            '<div class="px-3.5 py-2 bg-slate-50 text-xs text-slate-600 border-b">🎯 ' + r.strategyHint + '</div>' +
+            '<div class="p-3"><textarea id="reply-box-' + tIdx + '-' + rIdx + '" rows="7" class="w-full text-sm text-slate-800 p-2 rounded-xl border border-transparent hover:border-slate-200 focus:border-teal-500 focus:outline-none">' + r.content + '</textarea></div></div>' +
+            '<div class="p-3 bg-slate-50 border-t"><button onclick="copyReply(' + tIdx + ',' + rIdx + ', this)" class="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold cursor-pointer">📋 一鍵複製此回應</button></div></div>';
+        }).join('');
+
+        return '<div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">' +
+          '<div class="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">' +
+          '<span class="font-bold text-sm">第 ' + (tIdx + 1) + ' 輪對話（' + t.parentName + '・' + t.timestamp + '）</span>' +
+          '<button onclick="regenerateTurn(' + tIdx + ')" class="px-3 py-1 rounded-xl bg-slate-700 hover:bg-teal-600 text-xs">🔄 重新生成三種回應</button></div>' +
+          '<div class="p-5 space-y-4">' +
+          '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
+          '<div class="bg-slate-50 p-3.5 rounded-2xl border text-xs sm:text-sm"><strong>📩 家長訊息：</strong><p class="mt-1 whitespace-pre-wrap">' + (t.parentMessage || '(圖片訊息)') + '</p></div>' +
+          '<div class="bg-teal-50/80 p-3.5 rounded-2xl border border-teal-200 text-xs sm:text-sm"><strong>💡 心理師×公關拆彈洞察：</strong><p class="mt-1">' + t.analysis + '</p></div></div>' +
+          '<div class="grid grid-cols-1 lg:grid-cols-3 gap-4">' + cards + '</div></div></div>';
+      }).join('');
+    }
+
+    function openReportModal() {
+      document.getElementById('report-meta').textContent = '匯出日期：' + new Date().toLocaleDateString('zh-TW') + '｜共 ' + thread.length + ' 輪親師對話';
+      document.getElementById('report-turns').innerHTML = thread.map(function(t, i) {
+        var chosen = t.responses[t.selectedIdx || 0];
+        return '<div class="border border-slate-300 rounded-xl p-4 space-y-2">' +
+          '<div class="font-bold text-sm border-b pb-1">第 ' + (i + 1) + ' 輪對話（' + t.parentName + ' - ' + t.timestamp + '）</div>' +
+          '<div class="text-xs"><strong>【家長訊息】：</strong><p class="whitespace-pre-wrap bg-slate-50 p-2.5 rounded mt-1">' + (t.parentMessage || '(圖片)') + '</p></div>' +
+          '<div class="text-xs"><strong>【輔導與公關分析】：</strong><p class="bg-teal-50 p-2 rounded mt-1">' + t.analysis + '</p></div>' +
+          '<div class="text-xs"><strong>【教師正式回覆（' + (chosen?.type || '') + '）】：</strong><p class="whitespace-pre-wrap bg-indigo-50 p-2.5 rounded mt-1 font-medium">' + (chosen?.content || '') + '</p></div>' +
+          '</div>';
+      }).join('');
+      document.getElementById('report-modal').classList.remove('hidden');
+    }
+
+    function closeReportModal() {
+      document.getElementById('report-modal').classList.add('hidden');
+    }
+
+    function downloadPdf() {
+      var el = document.getElementById('printable-area');
+      html2pdf().set({
+        margin: 10,
+        filename: '親師溝通紀錄_' + new Date().toISOString().slice(0, 10) + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      }).from(el).save();
+    }
+  </script>
+</body>
+</html>
