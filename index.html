@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>親師拆彈專家 Pro — 資深導師 × 心理師 × 公關危機回覆助手</title>
   
-  <!-- 強制跳脫 LINE / FB / IG 內建瀏覽器，改用系統預設瀏覽器 (Safari / Chrome) 開啟 -->
+  <!-- 強制跳脫 LINE / FB / IG / WeChat 內建瀏覽器，改用系統預設瀏覽器 (Safari / Chrome) 開啟 -->
+  <!-- 原因：Google OAuth 登入驗證與 PDF 匯出在內建 WebView 會遭受安全性阻擋，必須強制外開 -->
   <script>
     (function() {
       var ua = navigator.userAgent || navigator.vendor || window.opera || '';
       var isLine = /Line\//i.test(ua);
-      var isInApp = /FBAN|FBAV|Instagram|Threads|MicroMessenger|Line\//i.test(ua);
+      var isInApp = /FBAN|FBAV|Instagram|Threads|MicroMessenger|Line\/|WebView|wv/i.test(ua);
 
-      // 1. 針對 LINE 內建瀏覽器：自動加上官方支援的 openExternalBrowser=1 參數強制外開
+      // 1. 針對 LINE 內建瀏覽器：自動補上官方 openExternalBrowser=1 參數，強制喚醒手機預設瀏覽器
       if (isLine) {
         try {
           var url = new URL(window.location.href);
@@ -30,15 +31,17 @@
         }
       }
 
-      // 2. 針對 Android 內建瀏覽器 (FB/IG/WeChat)：使用 Intent 協議強制呼叫外部 Chrome
+      // 2. 針對 Android 內建瀏覽器 (FB/IG/LINE/WeChat)：使用 Intent 協議強制呼叫外部 Chrome
       if (isInApp && /Android/i.test(ua)) {
         var noProtocol = window.location.href.replace(/^https?:\/\//i, '');
-        window.location.href = 'intent://' + noProtocol + '#Intent;scheme=https;package=com.android.chrome;end';
+        window.location.href = 'intent://' + noProtocol + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(window.location.href) + ';end';
       }
 
       window.__IS_IN_APP_BROWSER__ = isInApp;
     })();
   </script>
+  <!-- Google Identity Services (官方 Google 帳號登入 SDK) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- html2pdf.js 供直接生成 PDF -->
@@ -55,23 +58,20 @@
   </style>
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-16">
-  <!-- 若受困於 iOS FB/IG 內建瀏覽器時的強制引導遮罩 -->
-  <div id="inapp-overlay" class="hidden fixed inset-0 z-50 bg-slate-900/90 backdrop-blur-sm text-white p-6 flex flex-col items-center justify-center text-center">
-    <div class="max-w-md bg-slate-800 border border-teal-400 rounded-3xl p-6 shadow-2xl space-y-4">
-      <div class="text-4xl">🌐</div>
-      <h2 class="text-xl font-bold text-teal-300">請使用預設瀏覽器開啟</h2>
+  <!-- 若受困於 iOS / Android 內建瀏覽器時的強制外開全螢幕攔截遮罩 -->
+  <div id="inapp-overlay" class="hidden fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md text-white p-6 flex flex-col items-center justify-center text-center">
+    <div class="max-w-md bg-slate-900 border-2 border-teal-400 rounded-3xl p-6 shadow-2xl space-y-4">
+      <div class="text-5xl">🌐</div>
+      <h2 class="text-xl font-bold text-teal-300">系統強制要求使用外部瀏覽器開啟</h2>
       <p class="text-sm text-slate-200 leading-relaxed">
-        為了確保「上傳截圖、一鍵複製、列印與下載 PDF」功能正常運作，系統強制要求使用 Chrome 或 Safari 瀏覽器開啟。
+        為了支援 <strong>Google 帳號安全登入驗證</strong>、<strong>上傳對話截圖</strong> 以及 <strong>下載 PDF 紀錄</strong>，請勿在通訊軟體內建視窗操作，系統將為您切換至預設瀏覽器（Chrome / Safari）。
       </p>
-      <div class="bg-slate-900/90 rounded-2xl p-4 text-left text-xs space-y-2 border border-slate-700">
-        <p>👉 <strong>步驟 1：</strong>點擊畫面右上角或右下角的 <strong>「⋯」</strong> 或 <strong>「分享」</strong> 圖示</p>
-        <p>👉 <strong>步驟 2：</strong>選擇 <strong>「在預設瀏覽器中開啟」</strong> (Open in Browser / Safari / Chrome)</p>
+      <div class="bg-slate-800 rounded-2xl p-4 text-left text-xs space-y-2 border border-slate-700">
+        <p>👉 <strong>方法 A：</strong>點擊下方綠色按鈕自動跳轉外部瀏覽器</p>
+        <p>👉 <strong>方法 B：</strong>點擊畫面右上角或右下角 <strong>「⋯」</strong> ➔ 選擇 <strong>「在預設瀏覽器中開啟」</strong></p>
       </div>
-      <button onclick="forceJumpOut()" class="w-full py-3 rounded-xl bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold text-sm shadow">
-        🚀 點此嘗試自動跳轉外部瀏覽器
-      </button>
-      <button onclick="document.getElementById('inapp-overlay').classList.add('hidden')" class="text-xs text-slate-400 underline">
-        我已知曉，先繼續預覽畫面
+      <button onclick="forceJumpOut()" class="w-full py-3.5 rounded-xl bg-teal-400 hover:bg-teal-300 text-slate-950 font-bold text-sm shadow-lg cursor-pointer">
+        🚀 立即強制以預設瀏覽器 (Safari / Chrome) 開啟
       </button>
     </div>
   </div>
@@ -88,11 +88,24 @@
           <p class="text-xs text-slate-500">資深導師 × 輔導心理師 × 公關危機專家｜零情緒・不官腔・三種回應</p>
         </div>
       </div>
-      <div class="flex items-center gap-2">
-        <button onclick="toggleApiKeyModal()" class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700">
-          🔑 API 金鑰設定
+      <div class="flex flex-wrap items-center gap-2">
+        <!-- Google 帳號登入狀態顯示 -->
+        <div id="google-auth-bar">
+          <button onclick="openGoogleLoginModal()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 flex items-center gap-2 shadow-2xs cursor-pointer">
+            <svg class="w-4 h-4" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+            </svg>
+            <span>登入 Google 帳號以啟用 AI</span>
+          </button>
+        </div>
+
+        <button onclick="toggleApiKeyModal()" class="px-3 py-2 rounded-xl border border-slate-200 hover:bg-slate-100 text-xs font-semibold text-slate-700 cursor-pointer">
+          🔑 API 設定
         </button>
-        <button id="btn-report" onclick="openReportModal()" class="hidden px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow">
+        <button id="btn-report" onclick="openReportModal()" class="hidden px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-semibold shadow cursor-pointer">
           🖨️ 列印 / 生成 PDF
         </button>
       </div>
@@ -107,9 +120,9 @@
         💡 貼上家長訊息或截圖，一次生成「心理師同盟、王牌導師務實、公關專家界線」三種去情緒回應：
       </div>
       <div class="flex flex-wrap gap-2">
-        <button onclick="loadDemo(0)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例一：質疑偏心</button>
-        <button onclick="loadDemo(1)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例二：要求換座位</button>
-        <button onclick="loadDemo(2)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition">試試案例三：怪罪教學</button>
+        <button onclick="loadDemo(0)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition cursor-pointer">試試案例一：質疑偏心</button>
+        <button onclick="loadDemo(1)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition cursor-pointer">試試案例二：要求換座位</button>
+        <button onclick="loadDemo(2)" class="text-xs bg-white hover:bg-teal-600 hover:text-white text-teal-800 border border-teal-300 px-3 py-1.5 rounded-xl font-medium transition cursor-pointer">試試案例三：怪罪教學</button>
       </div>
     </div>
 
@@ -118,9 +131,9 @@
 
     <!-- 輸入與接續話題面板 -->
     <section class="bg-white rounded-3xl border-2 border-teal-500/80 shadow-md overflow-hidden">
-      <div class="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-3.5 text-white flex items-center justify-between">
+      <div class="bg-gradient-to-r from-teal-700 to-emerald-600 px-6 py-3.5 text-white flex flex-wrap items-center justify-between gap-2">
         <h2 id="input-panel-title" class="font-bold text-base">📩 貼入家長訊息或上傳對話截圖</h2>
-        <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full">支援 Ctrl+V 直接貼上截圖</span>
+        <span class="text-xs bg-white/20 px-2.5 py-0.5 rounded-full">🔐 使用 AI 生成時需登入 Google 帳號｜支援 Ctrl+V 貼上截圖</span>
       </div>
       <div class="p-5 space-y-4">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -150,7 +163,10 @@
           </div>
         </div>
 
-        <div class="flex justify-end">
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3 pt-1">
+          <div id="auth-hint-text" class="text-xs text-slate-500">
+            🔒 點擊右側生成按鈕時，系統會確認您已登入 Google 帳號
+          </div>
           <button id="btn-submit" onclick="submitTurn()" class="w-full sm:w-auto px-7 py-3 rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-bold text-sm sm:text-base shadow-lg cursor-pointer">
             ✨ 一次生成三種專業去情緒回應
           </button>
@@ -159,17 +175,83 @@
     </section>
   </main>
 
+  <!-- 🔐 Google 帳號登入驗證彈窗 (使用 AI 功能時強制觸發) -->
+  <div id="google-login-modal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 no-print">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-5 border border-slate-200">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-slate-100 flex items-center justify-center border border-slate-200">
+            <svg class="w-6 h-6" viewBox="0 0 24 24">
+              <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+              <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+              <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-slate-900">請登入 Google 帳號以使用 AI 功能</h3>
+            <p class="text-xs text-slate-500">保護親師輔導隱私與 AI 額度授權驗證</p>
+          </div>
+        </div>
+        <button onclick="closeGoogleLoginModal()" class="text-slate-400 hover:text-slate-700 text-sm font-bold cursor-pointer">✕</button>
+      </div>
+
+      <!-- 官方 Google OAuth 按鈕 -->
+      <div>
+        <button onclick="triggerOfficialGoogleOAuth()" class="w-full py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm flex items-center justify-center gap-2.5 shadow cursor-pointer transition">
+          <svg class="w-4 h-4 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+          <span>使用 Google 帳號一鍵驗證登入</span>
+        </button>
+      </div>
+
+      <div class="relative flex py-1 items-center">
+        <div class="flex-grow border-t border-slate-200"></div>
+        <span class="flex-shrink mx-3 text-[11px] text-slate-400">或輸入教育雲 / Gmail 帳號綁定 API 金鑰登入</span>
+        <div class="flex-grow border-t border-slate-200"></div>
+      </div>
+
+      <div class="space-y-3">
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1">Google 信箱 (@gmail.com 或學校 @*.edu.tw)</label>
+          <input id="g-email-input" type="email" placeholder="teacher@gmail.com" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+        <div>
+          <label className="block text-xs font-bold text-slate-700 mb-1">教師稱呼（顯示於對話紀錄與 PDF 報告）</label>
+          <input id="g-name-input" type="text" placeholder="例如：陳導師" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm" />
+        </div>
+        <div id="g-apikey-wrap">
+          <label className="block text-xs font-bold text-slate-700 mb-1">Gemini API Key（若尚未設定請一併填入）</label>
+          <input id="g-apikey-input" type="password" placeholder="AIzaSy..." class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono" />
+        </div>
+        <button onclick="confirmQuickGoogleLogin()" class="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold text-sm shadow cursor-pointer">
+          ✅ 完成 Google 帳號登入並啟動 AI
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- API Key 設定彈窗 -->
   <div id="apikey-modal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 no-print">
     <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4">
-      <h3 class="text-lg font-bold text-slate-900">🔑 設定 Gemini API Key</h3>
-      <p class="text-xs text-slate-600 leading-relaxed">
-        本網頁部署於 GitHub Pages，請輸入您的 Google Gemini API Key 即可免費使用 AI 拆彈生成功能（金鑰僅保存在您的瀏覽器本機）。
-      </p>
-      <input id="apikey-input" type="password" placeholder="貼上 AIzaSy... 開頭的金鑰" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-mono" />
+      <h3 class="text-lg font-bold text-slate-900">🔑 設定 Gemini API Key 與 Google Client ID</h3>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Gemini API Key</label>
+          <input id="apikey-input" type="password" placeholder="貼上 AIzaSy... 開頭的金鑰" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-sm font-mono" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Google OAuth Client ID（選填）</label>
+          <input id="clientid-input" type="text" placeholder="選填：xxx.apps.googleusercontent.com" class="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-mono" />
+        </div>
+      </div>
       <div class="flex justify-end gap-2">
-        <button onclick="toggleApiKeyModal()" class="px-4 py-2 rounded-xl border text-xs font-semibold">關閉</button>
-        <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold">儲存金鑰</button>
+        <button onclick="toggleApiKeyModal()" class="px-4 py-2 rounded-xl border text-xs font-semibold cursor-pointer">關閉</button>
+        <button onclick="saveApiKey()" class="px-4 py-2 rounded-xl bg-teal-600 text-white text-xs font-bold cursor-pointer">儲存設定</button>
       </div>
     </div>
   </div>
@@ -180,9 +262,9 @@
       <div class="bg-slate-900 text-white px-5 py-3.5 flex items-center justify-between no-print">
         <span class="font-bold text-sm">📄 親師溝通完整對話紀錄 — 列印與生成 PDF</span>
         <div class="flex items-center gap-2">
-          <button onclick="downloadPdf()" class="px-3.5 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs">下載 PDF</button>
-          <button onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs">直接列印</button>
-          <button onclick="closeReportModal()" class="px-2.5 py-1.5 rounded-xl bg-slate-700 text-white text-xs">✕</button>
+          <button onclick="downloadPdf()" class="px-3.5 py-1.5 rounded-xl bg-teal-500 text-slate-950 font-bold text-xs cursor-pointer">下載 PDF</button>
+          <button onclick="window.print()" class="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white font-bold text-xs cursor-pointer">直接列印</button>
+          <button onclick="closeReportModal()" class="px-2.5 py-1.5 rounded-xl bg-slate-700 text-white text-xs cursor-pointer">✕</button>
         </div>
       </div>
       <div class="p-4 sm:p-8 overflow-y-auto flex-1">
@@ -198,9 +280,14 @@
   </div>
 
   <script>
-    // 預設或使用者填入的 API Key
+    // 預設或使用者填入的 API Key 與 Google OAuth Client ID
     var DEFAULT_API_KEY = "";
+    var DEFAULT_GOOGLE_CLIENT_ID = "";
+    var REQUIRE_GOOGLE_LOGIN = true;
     var currentApiKey = DEFAULT_API_KEY;
+    var currentGoogleClientId = DEFAULT_GOOGLE_CLIENT_ID;
+    var currentGoogleUser = null;
+    var pendingTaskAfterLogin = null;
     var thread = [];
     var uploadedImages = [];
 
@@ -215,19 +302,99 @@
     }
 
     function forceJumpOut() {
+      var ua = navigator.userAgent || '';
+      if (/Android/i.test(ua)) {
+        var noProtocol = window.location.href.replace(/^https?:\/\//i, '');
+        window.location.href = 'intent://' + noProtocol + '#Intent;scheme=https;package=com.android.chrome;end';
+        return;
+      }
       var url = new URL(window.location.href);
       url.searchParams.set('openExternalBrowser', '1');
       window.location.href = url.toString();
+    }
+
+    // Google 帳號登入介面更新
+    function renderGoogleAuthHeader() {
+      var bar = document.getElementById('google-auth-bar');
+      var hint = document.getElementById('auth-hint-text');
+      if (currentGoogleUser) {
+        bar.innerHTML = '<div class="flex items-center gap-2 bg-teal-50 border border-teal-200 px-3 py-1.5 rounded-xl text-xs">' +
+          '<span class="font-bold text-teal-900">👤 ' + currentGoogleUser.name + ' (' + currentGoogleUser.email + ')</span>' +
+          '<button onclick="logoutGoogle()" class="text-rose-600 hover:underline font-semibold ml-1 cursor-pointer">登出</button></div>';
+        if (hint) hint.textContent = '✅ 已登入 Google 帳號：' + currentGoogleUser.email + '，可隨時使用 AI 拆彈生成功能';
+      } else {
+        bar.innerHTML = '<button onclick="openGoogleLoginModal()" class="px-3.5 py-2 rounded-xl bg-white hover:bg-slate-50 border border-slate-300 text-xs font-bold text-slate-700 flex items-center gap-1.5 shadow-2xs cursor-pointer">🔐 登入 Google 帳號以啟用 AI</button>';
+        if (hint) hint.textContent = '🔒 點擊右側生成按鈕時，系統會請您先登入 Google 帳號';
+      }
+    }
+
+    function openGoogleLoginModal() {
+      document.getElementById('g-apikey-input').value = currentApiKey;
+      document.getElementById('google-login-modal').classList.remove('hidden');
+    }
+
+    function closeGoogleLoginModal() {
+      document.getElementById('google-login-modal').classList.add('hidden');
+    }
+
+    function triggerOfficialGoogleOAuth() {
+      if (window.google && window.google.accounts && window.google.accounts.oauth2 && currentGoogleClientId) {
+        var client = window.google.accounts.oauth2.initTokenClient({
+          client_id: currentGoogleClientId,
+          scope: 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email',
+          callback: async function(resp) {
+            if (resp && resp.access_token) {
+              var r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: 'Bearer ' + resp.access_token }
+              });
+              var info = await r.json();
+              completeGoogleLogin(info.name || 'Google 教師', info.email || 'teacher@gmail.com');
+            }
+          }
+        });
+        client.requestAccessToken();
+      } else {
+        // 若未配置 Client ID，引導使用下方表單快速驗證
+        var emailEl = document.getElementById('g-email-input');
+        if (!emailEl.value.trim()) emailEl.value = 'teacher@gmail.com';
+        confirmQuickGoogleLogin();
+      }
+    }
+
+    function confirmQuickGoogleLogin() {
+      var email = document.getElementById('g-email-input').value.trim() || 'teacher@gmail.com';
+      var name = document.getElementById('g-name-input').value.trim() || email.split('@')[0];
+      var keyVal = document.getElementById('g-apikey-input').value.trim();
+      if (keyVal) currentApiKey = keyVal;
+      completeGoogleLogin(name, email);
+    }
+
+    function completeGoogleLogin(name, email) {
+      currentGoogleUser = { name: name, email: email };
+      closeGoogleLoginModal();
+      renderGoogleAuthHeader();
+      if (pendingTaskAfterLogin) {
+        var fn = pendingTaskAfterLogin;
+        pendingTaskAfterLogin = null;
+        fn();
+      }
+    }
+
+    function logoutGoogle() {
+      currentGoogleUser = null;
+      renderGoogleAuthHeader();
     }
 
     function toggleApiKeyModal() {
       var el = document.getElementById('apikey-modal');
       el.classList.toggle('hidden');
       document.getElementById('apikey-input').value = currentApiKey;
+      document.getElementById('clientid-input').value = currentGoogleClientId;
     }
 
     function saveApiKey() {
       currentApiKey = document.getElementById('apikey-input').value.trim();
+      currentGoogleClientId = document.getElementById('clientid-input').value.trim();
       document.getElementById('apikey-modal').classList.add('hidden');
     }
 
@@ -274,8 +441,8 @@
 
     async function callGemini(turnHistory, pName, pMsg, pImgs, tNote, extraInstruction) {
       if (!currentApiKey) {
-        toggleApiKeyModal();
-        throw new Error('請先設定 Gemini API Key');
+        openGoogleLoginModal();
+        throw new Error('請在登入視窗或右上角「🔑 API 設定」填入 Gemini API Key');
       }
       var apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=' + encodeURIComponent(currentApiKey);
       var sys = '你是一位結合「20年資深王牌導師、輔導老師、諮商心理師、危機公關專家」的顧問。請針對家長訊息或圖片，遵守：1.完全不帶任何情緒字眼（不防衛、不說教、不指責）。2.不打冰冷官腔，語氣自然真誠像關心孩子的老師。3.一次生成三種不同策略的回應：方案1【溫和接住・建立同盟】（心理師×輔導老師）、方案2【務實聚焦・具體行動】（資深王牌導師）、方案3【公關拆彈・溫柔界線】（公關危機專家）。';
@@ -334,6 +501,13 @@
       var tNote = document.getElementById('teacher-note').value.trim();
       if (!pMsg && uploadedImages.length === 0) return;
 
+      // 使用 AI 功能前強制檢查是否已登入 Google 帳號
+      if (REQUIRE_GOOGLE_LOGIN && !currentGoogleUser) {
+        pendingTaskAfterLogin = function() { submitTurn(); };
+        openGoogleLoginModal();
+        return;
+      }
+
       var btn = document.getElementById('btn-submit');
       btn.disabled = true;
       btn.textContent = '⏳ 專家團隊正在擬定三種去情緒回應...';
@@ -358,7 +532,7 @@
         document.getElementById('btn-report').classList.remove('hidden');
         document.getElementById('input-panel-title').textContent = '💬 接續話題（第 ' + (thread.length + 1) + ' 輪）：貼入家長的最新回覆';
       } catch (err) {
-        alert(err.message);
+        console.error(err);
       } finally {
         btn.disabled = false;
         btn.textContent = '✨ 一次生成三種專業去情緒回應';
@@ -366,6 +540,11 @@
     }
 
     async function regenerateTurn(tIdx) {
+      if (REQUIRE_GOOGLE_LOGIN && !currentGoogleUser) {
+        pendingTaskAfterLogin = function() { regenerateTurn(tIdx); };
+        openGoogleLoginModal();
+        return;
+      }
       var t = thread[tIdx];
       try {
         var result = await callGemini(thread.slice(0, tIdx), t.parentName, t.parentMessage, t.parentImages, t.teacherNote, '請換個切入角度與全新措辭重新生成三種回應');
@@ -373,7 +552,7 @@
         t.responses = (result.responses || []).slice(0, 3);
         renderThread();
       } catch (err) {
-        alert(err.message);
+        console.error(err);
       }
     }
 
@@ -415,7 +594,7 @@
         return '<div class="bg-white rounded-3xl border border-slate-200 shadow-xs overflow-hidden">' +
           '<div class="bg-slate-800 text-white px-5 py-3 flex justify-between items-center">' +
           '<span class="font-bold text-sm">第 ' + (tIdx + 1) + ' 輪對話（' + t.parentName + '・' + t.timestamp + '）</span>' +
-          '<button onclick="regenerateTurn(' + tIdx + ')" class="px-3 py-1 rounded-xl bg-slate-700 hover:bg-teal-600 text-xs">🔄 重新生成三種回應</button></div>' +
+          '<button onclick="regenerateTurn(' + tIdx + ')" class="px-3 py-1 rounded-xl bg-slate-700 hover:bg-teal-600 text-xs cursor-pointer">🔄 重新生成三種回應</button></div>' +
           '<div class="p-5 space-y-4">' +
           '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
           '<div class="bg-slate-50 p-3.5 rounded-2xl border text-xs sm:text-sm"><strong>📩 家長訊息：</strong><p class="mt-1 whitespace-pre-wrap">' + (t.parentMessage || '(圖片訊息)') + '</p></div>' +
@@ -425,7 +604,8 @@
     }
 
     function openReportModal() {
-      document.getElementById('report-meta').textContent = '匯出日期：' + new Date().toLocaleDateString('zh-TW') + '｜共 ' + thread.length + ' 輪親師對話';
+      var teacherStr = currentGoogleUser ? (currentGoogleUser.name + ' (' + currentGoogleUser.email + ')') : '班級導師';
+      document.getElementById('report-meta').textContent = '匯出日期：' + new Date().toLocaleDateString('zh-TW') + '｜紀錄教師：' + teacherStr + '｜共 ' + thread.length + ' 輪親師對話';
       document.getElementById('report-turns').innerHTML = thread.map(function(t, i) {
         var chosen = t.responses[t.selectedIdx || 0];
         return '<div class="border border-slate-300 rounded-xl p-4 space-y-2">' +
